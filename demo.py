@@ -5,6 +5,7 @@ import threading
 boolean = False
 mouse_block = None
 count = 0
+count_thread = 0
 
 # Return the truncated integer parts of different numbers
 import win32api
@@ -12,12 +13,17 @@ import win32api
 def periodic_function():
 	global count
 	global mouse_block
+	global count_thread
+	count_thread += 1
+
 	while mouse_block:
 		print(count)
 		count+=1
 		win32api.SetCursorPos( (50, 50) )
-		time.sleep(1)
+		time.sleep(0.1)
+
 	print("while exit")
+	count_thread -= 1
 
 # Start thread
 
@@ -31,13 +37,10 @@ q = None
 somestring = ["tab","ctrl","c","esc"]
 
 def my_custom_a_function():
-
+	print("my_custom_a_function")
 	global boolean
-	if( boolean ):
-		boolean = False
-		print("TAB is not active")
-		keyboard.unhook_all_hotkeys()
-		init()
+	boolean = False
+	my_custom_tab_function()
 
 def my_custom_tab_function():
 
@@ -48,15 +51,19 @@ def my_custom_tab_function():
 	global q
 	global mouse_block
 	global count
+	global count_thread
 	boolean = not boolean
 	if( boolean ):
 
 		print("TAB is active")
 
 		# periodic_function()
-		mouse_block=True
-		thread = threading.Thread( target=periodic_function )
-		thread.start()
+		if( count_thread == 0 ):
+			mouse_block=True
+			thread = threading.Thread( target=periodic_function )
+			thread.start()
+		else:
+			print("thread already running")
 
 		z = keyboard.add_hotkey( "z", lambda: keyboard.press_and_release("up"), suppress=True )
 		s = keyboard.add_hotkey( "s", lambda: keyboard.press_and_release("down"), suppress=True )
@@ -80,15 +87,16 @@ def my_custom_escape_function():
 	my_custom_tab_function()
 
 def my_custom_ctrl_function():
-	# print("my_custom_CTRL_function")
+	global boolean
+	boolean = True
 	my_custom_tab_function()
 
 def on_key_event(event):
+
 	if event.name not in somestring: 
 		print(f"Key pressed: {event.name}")
-	if keyboard.is_pressed("ctrl") and event.name == "c":
-		thread.join()
-		exit()
+	# if keyboard.is_pressed("ctrl") and event.name == "c":
+	# 	exit()
 
 def swap_keys():
 
@@ -99,8 +107,9 @@ def swap_keys():
 def init():
 
 	tab = keyboard.add_hotkey( "tab" , lambda: my_custom_tab_function() , suppress=True )
+	keyboard.add_hotkey( "esc" , lambda: my_custom_escape_function() )
+	# keyboard.add_hotkey( "a", lambda: my_custom_a_function() )
 	keyboard.add_hotkey( "ctrl" , lambda: my_custom_ctrl_function() )
-	keyboard.add_hotkey( "esc"  , lambda: my_custom_escape_function() )
 
 try:
 	swap_keys()
